@@ -1,0 +1,9 @@
+@font-face {
+    font-family: "Marvel";
+    src: url('@/assets/font/Marvel-Regular.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: "Marvel-Bold";
+    src: url('@/assets/font/Marvel-Bold.ttf') format('truetype');
+}
