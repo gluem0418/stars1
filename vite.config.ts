@@ -7,7 +7,7 @@ import { templateCompilerOptions } from '@tresjs/core'
 import * as path from 'path';
 
 export default defineConfig({
-  base: '/ppap/', //追加
+  base: '/stars1/', //追加
   plugins: [
     vue({
       // template: {
@@ -22,6 +22,7 @@ export default defineConfig({
   ],
   define: { 'process.env': {} },
   build: {
+    outDir: './docs', 
     sourcemap: true,
   },
   resolve: {

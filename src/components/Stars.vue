@@ -177,8 +177,6 @@ onLoop(({ }) => {
 
   starPoint.value!.geometry.setAttribute('size', new BufferAttribute(starSizes, 1));
 
-  // console.log('onLoop end')
-
 })
 
 // })
@@ -234,6 +232,6 @@ function clickScreen(ray: Intersection) {
   left: 50%;
   transform: translate(-50%, -50%);
   font-size: 2vw;
-  color: #041A25;
+  /* color: #041A25; */
 }
 </style>
