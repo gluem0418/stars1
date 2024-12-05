@@ -7,3 +7,14 @@
     font-family: "Marvel-Bold";
     src: url('@/assets/font/Marvel-Bold.ttf') format('truetype');
 }
+
+body {
+    margin: 0;
+    font-size: 16px;
+    background-image: url('@/assets/img/sky1.jpg');
+    background-attachment: fixed;
+    background-size: cover;
+    font-family: "Marvel-Bold";
+    color: #D5E0F1;
+}
+  

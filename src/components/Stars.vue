@@ -1,39 +1,20 @@
-<template>
-  <TresCanvas>
-
-    <TresPerspectiveCamera :position="[0, 0, cameraDistance]" :args="[cameraFov, 1, 1, cameraDistance]" />
-
-
-    <TresMesh @click="clickScreen">
-      <TresPlaneGeometry :args="[planeWidth, planeHeight]" />
-      <TresMeshBasicMaterial :visible="false" />
-    </TresMesh>
-
-    <TresPoints :visible="starsVisible" ref="starPoint">
-      <TresBufferGeometry :position="[starVertices, 3]" :color="[starColors, 3]" :size="[starSizes, 1]" />
-      <TresShaderMaterial v-bind="starMaterial" />
-    </TresPoints>
-
-  </TresCanvas>
-
-  <div v-if="startAnimation" class="enter">{{ Config.txtEnter }}</div>
-</template>
-
 <script setup lang="ts">
 
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 
 import { TresCanvas, useTexture, useRenderLoop } from '@tresjs/core'
 
-
-import { BufferAttribute, ShaderMaterial, Intersection, Points } from 'three'
+import { BufferAttribute, Points, Raycaster, Vector2, PerspectiveCamera, Mesh, Vector3 } from 'three'
 
 import vertexShader from '@/components/shaders/vertex.glsl';
 import fragmentShader from '@/components/shaders/fragment.glsl';
 
-import Config from '@/Config.ts'
-
 import imgStar from '@/assets/img/star1.png'
+
+const props = defineProps({
+  starsVisible: { type: Boolean },
+});
+
 
 const starTexture = await useTexture([imgStar])
 
@@ -42,14 +23,12 @@ const starTexture = await useTexture([imgStar])
 /////////////////////////////////////////////
 const cameraDistance = 500
 const cameraFov = 50
+const cameraRef = ref<PerspectiveCamera | null>(null);
 
-// const starGeometry = ref<BufferGeometry | null>(null);
-const starMaterialRef = ref<ShaderMaterial | null>(null);
 const starPoint = ref<Points | null>(null);
 
+const planeRef = ref<Mesh | null>(null);
 const starCount = 8600;
-
-let leftEnd: number, rightEnd: number, topEnd: number, bottomEnd: number
 
 // カメラの視野角をラジアンに変換
 const fov = cameraFov * (Math.PI / 180);
@@ -59,9 +38,6 @@ const aspect = window.innerWidth / window.innerHeight;
 const planeHeight = 2 * Math.tan(fov / 2) * cameraDistance * 1.2;
 // 平面の幅を計算
 const planeWidth = planeHeight * aspect;
-
-const startAnimation = ref<boolean>(true);
-const starsVisible = ref<boolean>(false);
 
 //minからmaxまでのランダムな値を返す
 const randomNum = (min: number, max: number) => {
@@ -132,10 +108,10 @@ for (let i = 0; i < starPoints * 2; i++) {
   starShapeVertices.push(Math.cos(angle) * radius, Math.sin(angle) * radius, 0);
 }
 
-leftEnd = -(planeWidth / 2)
-rightEnd = (planeWidth / 2)
-topEnd = (planeHeight / 2)
-bottomEnd = -(planeHeight / 2)
+const leftEnd = -(planeWidth / 2)
+const rightEnd = (planeWidth / 2)
+const topEnd = (planeHeight / 2)
+const bottomEnd = -(planeHeight / 2)
 
 console.log('leftEnd', leftEnd)
 console.log('rightEnd', rightEnd)
@@ -147,8 +123,6 @@ const { onLoop, resume } = useRenderLoop()
 resume()
 
 onLoop(({ }) => {
-
-  // console.log('onLoop start')
 
   for (let i = 0; i < starCount; i++) {
 
@@ -179,37 +153,18 @@ onLoop(({ }) => {
 
 })
 
-// })
-
 //////////////////////////////////////////////
 // クリックした場所に星を表示する処理
 /////////////////////////////////////////////
-function clickScreen(ray: Intersection) {
+// function clickScreen(ray: Intersection) {
+function clickScreen(point: Vector3) {
 
-  console.log('starPoint.value')
   if (!starPoint.value) return
-
-  console.log('clickScreen ray', ray)
-  console.log('clickScreen ray.point', ray.point)
-
-  console.log('clickScreen_starMaterialRef', starMaterialRef.value)
-  console.log('clickScreen_starPoint', starPoint.value)
-  console.log('starTexture', starTexture)
-
-  if (startAnimation.value) {
-    starsVisible.value = true;
-    startAnimation.value = false
-  }
-
   const scaleFactor = 1.0; // スケーリング値を調整
   const starRandom = 5; //表示位置のバラつき 
 
-  // const point: Vector3 = ray.point;
-
-  const scalePointX = ray.point.x * scaleFactor
-  const scalePointY = (ray.point.y - 1) * scaleFactor
-
-  console.log('3D空間のクリック位置', ray.point);
+  const scalePointX = point.x * scaleFactor
+  const scalePointY = (point.y - 1) * scaleFactor
 
   // クリック位置の周辺に星を配置
   for (let i = 0; i < starCount / 2; i++) {
@@ -223,15 +178,62 @@ function clickScreen(ray: Intersection) {
 
 }
 
+//////////////////////////////////////////////
+// planeRef上のクリックしたPositionを取得
+/////////////////////////////////////////////
+const raycaster = new Raycaster();
+const pointer = new Vector2();
+
+const onPointerDown = (event: Event) => {
+  const pointerEvent = event as PointerEvent;
+  console.log('onPointerDown_event', event)
+  // スクリーン座標を Three.js の正規化座標に変換
+  const canvas = pointerEvent.target as HTMLCanvasElement;
+  pointer.x = (pointerEvent.clientX / canvas.offsetWidth) * 2 - 1;
+  pointer.y = -(pointerEvent.clientY / canvas.offsetHeight) * 2 + 1;
+
+  // レイキャストを実行
+  raycaster.setFromCamera(pointer, cameraRef.value!);
+  const intersects = raycaster.intersectObject(planeRef.value!, true);
+
+  if (intersects.length > 0) {
+    const clickedPosition = intersects[0].point;
+    // クリックされた位置を取得 
+    console.log('onPointerDown_clickedPosition', clickedPosition);
+    clickScreen(clickedPosition);
+  }
+};
+
+onMounted(() => {
+  const canvas = document.querySelector(".Stars");
+  if (canvas) canvas.addEventListener("pointerdown", onPointerDown);
+});
+
+onUnmounted(() => {
+  const canvas = document.querySelector(".Stars");
+  if (canvas) canvas.removeEventListener("pointerdown", onPointerDown);
+});
+
 </script>
 
-<style scoped>
-.enter {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 2vw;
-  /* color: #041A25; */
-}
-</style>
+<template>
+  <TresCanvas>
+
+    <TresPerspectiveCamera :position="[0, 0, cameraDistance]" :args="[cameraFov, 1, 1, cameraDistance]"
+      ref="cameraRef" />
+
+    <TresMesh ref="planeRef">
+      <TresPlaneGeometry :args="[planeWidth, planeHeight]" />
+      <TresMeshBasicMaterial :visible="false" />
+    </TresMesh>
+
+    <TresPoints :visible="starsVisible" ref="starPoint">
+      <TresBufferGeometry :position="[starVertices, 3]" :color="[starColors, 3]" :size="[starSizes, 1]" />
+      <TresShaderMaterial v-bind="starMaterial" />
+    </TresPoints>
+
+  </TresCanvas>
+
+</template>
+
+<style scoped></style>

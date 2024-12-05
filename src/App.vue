@@ -1,54 +1,53 @@
 <template>
-  <main>
 
-    <div class="tresBg">
+  <div class="Stars-container" @click.once="clickScreen">
+    <Suspense>
+      <Stars class="Stars" :starsVisible="starsVisible" />
+    </Suspense>
+  </div>
 
-      <Suspense>
+  <div class="title">{{ Config.title }}</div>
+  <div v-if="startAnimation" class="enter">{{ Config.txtEnter }}</div>
 
-        <Stars />
-
-      </Suspense>
-
-    </div>
-
-    <div class="title">{{ Config.title }}</div>
-
-  </main>
 </template>
 
 <script setup lang="ts">
 
+import { ref } from 'vue';
+
 import Stars from '@/components/Stars.vue';
 import Config from '@/Config.ts'
+
+const starsVisible = ref<boolean>(false);
+const startAnimation = ref<boolean>(true);
+
+function clickScreen() {
+  if (startAnimation.value) {
+    starsVisible.value = true;
+    startAnimation.value = false
+  }
+}
 
 </script>
 
 <style scoped>
-main {
-  position: relative;
-  width: 100%;
-  height: auto;
-  font-family: "Marvel-Bold";
-  color: #D5E0F1;
+.Stars-container {
+  position: fixed;
+  inset: 0;
 }
 
-.tresBg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url('@/assets/img/sky1.jpg');
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center;
+.enter {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3vh;
+  white-space: nowrap;
 }
 
 .title {
-  position: absolute;
-  top: 1%;
-  left: 3%;
-  font-size: 4vw;
+  margin-left:32px;
+  margin-top:16px;
+  font-size: 8vh;
 }
-
 </style>
